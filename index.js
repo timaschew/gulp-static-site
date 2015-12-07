@@ -87,7 +87,7 @@ function render_tmpl() {
 		var t = (file.meta && file.meta.layout) || 'default';
 
 		// pull from cache, compile if needed
-		return compile_template('templates/' + t + '.jade')
+		return compile_template(options.baseDir + 'templates/' + t + '.jade')
 			.then(function(compiled_template) {
 				$.util.log('rendering [' + chalk.yellow(t) + '] "' +
 					chalk.magenta(path.basename(file.path)) + '"');
@@ -142,6 +142,11 @@ var show_tree_once = function() {
 		return file;
 	});
 };
+
+//TODO: make it configurable
+// https://github.com/wires/gulp-static-site/issues/7
+var options = {};
+if (!options.baseDir) options.baseDir = 'src/'
 
 module.exports = lazypipe()
 	.pipe($.map, extended_attributes)
