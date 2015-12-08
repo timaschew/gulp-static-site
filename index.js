@@ -19,7 +19,8 @@ var Q = require('kew');
 var fs = require('fs');
 var jade = require('jade');
 var File = require('vinyl');
-
+var glob = require('glob');
+var yaml = require('js-yaml');
 // showing off
 var archy = require('archy');
 var chalk = require('chalk');
@@ -56,6 +57,13 @@ function render_tmpl() {
 
 	// store compiled templates for great good
 	var cache = {};
+	var globbedFiles = glob.sync(options.baseDir + '/contents/*.yml');
+	var yamlData = {};
+	for (var i=0; i<globbedFiles.length; i++) {
+		var foundFile = globbedFiles[i];
+		var basename = path.basename(foundFile, '.yml');
+		yamlData[basename] = yaml.load(fs.readFileSync(foundFile, 'utf8'))
+	}
 
 	var compile_template = function (filename)
 	{
@@ -84,7 +92,7 @@ function render_tmpl() {
 
 	return $.map(function(file){
 		// select template
-		var t = (file.meta && file.meta.layout) || 'default';
+		var t = (file.frontMatter && file.frontMatter.layout) || 'default';
 
 		// pull from cache, compile if needed
 		return compile_template(options.baseDir + 'templates/' + t + '.jade')
@@ -93,8 +101,11 @@ function render_tmpl() {
 					chalk.magenta(path.basename(file.path)) + '"');
 
 				try {
-					// render it with template variable 'page'
-					var html = compiled_template({page: file});
+					var locals = {
+						page: file,
+						contents: yamlData
+					};
+					var html = compiled_template(locals);
 				}
 				catch(err) {
 					console.log('[' + chalk.red('ERR') +
@@ -150,6 +161,7 @@ if (!options.baseDir) options.baseDir = 'src/'
 
 module.exports = lazypipe()
 	.pipe($.map, extended_attributes)
+	.pipe(require('gulp-front-matter'))
 	.pipe($.marked)
 ////	.pipe(resolve_wiki_links)
 	.pipe($.filetree)
